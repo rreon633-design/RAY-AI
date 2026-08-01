@@ -1,5 +1,7 @@
 package com.example.ui.screens.chat
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -72,19 +74,22 @@ fun ChatMessageList(
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+                            modifier = Modifier.padding(start = 12.dp, top = 4.dp)
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(12.dp),
-                                strokeWidth = 2.dp,
-                                color = AccentPurple
+                            // Neobrutalist active status dot
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color(0xFFF4D03F))
+                                    .border(1.5.dp, Color.Black)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Generating @ ${liveMetrics.tokensPerSecond} t/s • RAM ${liveMetrics.ramUsedMb} MB • CPU ${liveMetrics.cpuUsagePercent}%",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = AccentPurple
+                                text = "GENERATING | SPEED: ${liveMetrics.tokensPerSecond} t/s | RAM: ${liveMetrics.ramUsedMb} MB | CPU: ${liveMetrics.cpuUsagePercent}%",
+                                fontSize = 10.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                                color = Color.Black
                             )
                         }
                     }

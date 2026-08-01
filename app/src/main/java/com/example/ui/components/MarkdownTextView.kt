@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -155,102 +156,301 @@ fun MarkdownTextView(
     }
 }
 
+sealed class RenderElement {
+    data class Header(val level: Int, val text: String) : RenderElement()
+    data class Bullet(val bulletText: String, val isBoldHeader: Boolean, val title: String = "", val desc: String = "") : RenderElement()
+    data class Numbered(val prefix: String, val text: String) : RenderElement()
+    data class Quote(val text: String) : RenderElement()
+    data class Progress(val label: String, val percentage: Int) : RenderElement()
+    data class Table(val headers: List<String>, val rows: List<List<String>>) : RenderElement()
+    data class Chart(val title: String, val bars: List<Pair<String, Double>>) : RenderElement()
+    data class StepCard(val stepNum: String, val title: String, val desc: String) : RenderElement()
+    data class TipCard(val title: String, val desc: String) : RenderElement()
+    data class ImageResult(val prompt: String) : RenderElement()
+    data class Paragraph(val text: String) : RenderElement()
+    object SpacerElement : RenderElement()
+}
+
+fun parsePartToElements(part: String): List<RenderElement> {
+    val lines = part.trim('\n').split("\n")
+    val elements = mutableListOf<RenderElement>()
+    var i = 0
+    val total = lines.size
+    
+    while (i < total) {
+        val line = lines[i]
+        val trimmedLine = line.trim()
+        
+        when {
+            trimmedLine.isEmpty() -> {
+                elements.add(RenderElement.SpacerElement)
+                i++
+            }
+            
+            trimmedLine.startsWith("|") && trimmedLine.endsWith("|") -> {
+                val tableLines = mutableListOf<String>()
+                while (i < total && lines[i].trim().startsWith("|") && lines[i].trim().endsWith("|")) {
+                    tableLines.add(lines[i].trim())
+                    i++
+                }
+                
+                if (tableLines.size >= 1) {
+                    val rawHeaders = tableLines[0].split("|").map { it.trim() }.filter { it.isNotEmpty() }
+                    val dataStartIndex = if (tableLines.size > 1 && tableLines[1].contains("---")) 2 else 1
+                    
+                    val rows = mutableListOf<List<String>>()
+                    for (k in dataStartIndex until tableLines.size) {
+                        val rowCells = tableLines[k].split("|").map { it.trim() }.filterIndexed { idx, _ -> idx > 0 && idx < tableLines[k].split("|").size - 1 }
+                        rows.add(rowCells)
+                    }
+                    
+                    elements.add(RenderElement.Table(rawHeaders, rows))
+                }
+            }
+            
+            trimmedLine.startsWith("[chart:") && trimmedLine.endsWith("]") -> {
+                val content = trimmedLine.removePrefix("[chart:").removeSuffix("]").trim()
+                val parts = content.split("|")
+                val title = if (parts.isNotEmpty()) parts[0].trim() else "Chart"
+                val bars = mutableListOf<Pair<String, Double>>()
+                for (k in 1 until parts.size) {
+                    val barPart = parts[k].trim()
+                    val eqIdx = barPart.indexOf('=')
+                    if (eqIdx != -1) {
+                        val label = barPart.substring(0, eqIdx).trim()
+                        val valStr = barPart.substring(eqIdx + 1).trim()
+                        val value = valStr.toDoubleOrNull() ?: 0.0
+                        bars.add(Pair(label, value))
+                    }
+                }
+                elements.add(RenderElement.Chart(title, bars))
+                i++
+            }
+            
+            (trimmedLine.startsWith("[visual:") || trimmedLine.startsWith("[image:")) && trimmedLine.endsWith("]") -> {
+                val prefix = if (trimmedLine.startsWith("[visual:")) "[visual:" else "[image:"
+                val prompt = trimmedLine.removePrefix(prefix).removeSuffix("]").trim()
+                elements.add(RenderElement.ImageResult(prompt))
+                i++
+            }
+            
+            (trimmedLine.startsWith("[tip:") || trimmedLine.startsWith("[pro-tip:")) && trimmedLine.endsWith("]") -> {
+                val prefix = if (trimmedLine.startsWith("[tip:")) "[tip:" else "[pro-tip:"
+                val content = trimmedLine.removePrefix(prefix).removeSuffix("]").trim()
+                val parts = content.split("|")
+                val title = if (parts.isNotEmpty()) parts[0].trim() else "PRO TIP"
+                val desc = if (parts.size > 1) parts[1].trim() else ""
+                elements.add(RenderElement.TipCard(title, desc))
+                i++
+            }
+            
+            trimmedLine.startsWith("[step:") && trimmedLine.endsWith("]") -> {
+                val content = trimmedLine.removePrefix("[step:").removeSuffix("]").trim()
+                val parts = content.split("|")
+                val stepNum = if (parts.isNotEmpty()) parts[0].trim() else "01"
+                val title = if (parts.size > 1) parts[1].trim() else ""
+                val desc = if (parts.size > 2) parts[2].trim() else ""
+                elements.add(RenderElement.StepCard(stepNum, title, desc))
+                i++
+            }
+            
+            trimmedLine.startsWith("[progress:") && trimmedLine.endsWith("]") -> {
+                val content = trimmedLine.removePrefix("[progress:").removeSuffix("]").trim()
+                val parts = content.split("|")
+                val label = if (parts.size > 1) parts[0].trim() else "PROGRESS"
+                val pctStr = if (parts.size > 1) parts[1].trim() else parts[0].trim()
+                val pct = pctStr.removeSuffix("%").trim().toIntOrNull() ?: 50
+                elements.add(RenderElement.Progress(label, pct))
+                i++
+            }
+            
+            trimmedLine.startsWith("# ") -> {
+                elements.add(RenderElement.Header(1, trimmedLine.removePrefix("# ").trim()))
+                i++
+            }
+            trimmedLine.startsWith("## ") -> {
+                elements.add(RenderElement.Header(2, trimmedLine.removePrefix("## ").trim()))
+                i++
+            }
+            trimmedLine.startsWith("### ") -> {
+                elements.add(RenderElement.Header(3, trimmedLine.removePrefix("### ").trim()))
+                i++
+            }
+            
+            trimmedLine.startsWith("* ") || trimmedLine.startsWith("- ") || trimmedLine.startsWith("+ ") -> {
+                val bulletText = trimmedLine.substring(2).trim()
+                val isBoldHeader = bulletText.startsWith("**") && (bulletText.contains("**: ") || bulletText.contains("** - ") || bulletText.contains("** – "))
+                if (isBoldHeader) {
+                    val endBoldIdx = bulletText.indexOf("**", 2)
+                    if (endBoldIdx != -1) {
+                        val title = bulletText.substring(2, endBoldIdx).trim()
+                        var desc = bulletText.substring(endBoldIdx + 2).trim()
+                        if (desc.startsWith(":") || desc.startsWith("-") || desc.startsWith("–")) {
+                            desc = desc.substring(1).trim()
+                        }
+                        elements.add(RenderElement.Bullet(bulletText = bulletText, isBoldHeader = true, title = title, desc = desc))
+                    } else {
+                        elements.add(RenderElement.Bullet(bulletText = bulletText, isBoldHeader = false))
+                    }
+                } else {
+                    elements.add(RenderElement.Bullet(bulletText = bulletText, isBoldHeader = false))
+                }
+                i++
+            }
+            
+            trimmedLine.matches(Regex("^\\d+\\.\\s+.*")) -> {
+                val dotIdx = trimmedLine.indexOf('.')
+                val numPrefix = trimmedLine.substring(0, dotIdx + 1)
+                val numText = trimmedLine.substring(dotIdx + 1).trim()
+                
+                val isBoldStep = numText.startsWith("**") && numText.contains("**") && (numText.contains("**: ") || numText.contains("** - "))
+                if (isBoldStep) {
+                    val endBoldIdx = numText.indexOf("**", 2)
+                    if (endBoldIdx != -1) {
+                        val title = numText.substring(2, endBoldIdx).trim()
+                        var desc = numText.substring(endBoldIdx + 2).trim()
+                        if (desc.startsWith(":") || desc.startsWith("-")) {
+                            desc = desc.substring(1).trim()
+                        }
+                        val stepNum = if (numPrefix.removeSuffix(".").length == 1) "0${numPrefix.removeSuffix(".")}" else numPrefix.removeSuffix(".")
+                        elements.add(RenderElement.StepCard(stepNum, title, desc))
+                    } else {
+                        elements.add(RenderElement.Numbered(numPrefix, numText))
+                    }
+                } else {
+                    elements.add(RenderElement.Numbered(numPrefix, numText))
+                }
+                i++
+            }
+            
+            trimmedLine.startsWith("> ") -> {
+                val quoteText = trimmedLine.removePrefix("> ").trim()
+                if (quoteText.startsWith("PRO TIP:") || quoteText.startsWith("**PRO TIP:**")) {
+                    val content = quoteText.removePrefix("**PRO TIP:**").removePrefix("PRO TIP:").trim()
+                    val parts = content.split(":")
+                    val title = if (parts.isNotEmpty()) parts[0].trim() else "PRO TIP"
+                    val desc = if (parts.size > 1) content.substring(parts[0].length + 1).trim() else content
+                    elements.add(RenderElement.TipCard(title, desc))
+                } else {
+                    elements.add(RenderElement.Quote(quoteText))
+                }
+                i++
+            }
+            
+            else -> {
+                elements.add(RenderElement.Paragraph(trimmedLine))
+                i++
+            }
+        }
+    }
+    
+    return elements
+}
+
 @Composable
 private fun MarkdownBlock(
     part: String,
     textColor: Color
 ) {
-    val lines = part.trim('\n').split("\n")
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        lines.forEach { line ->
-            val trimmedLine = line.trim()
-            when {
-                // Header 1
-                trimmedLine.startsWith("# ") -> {
-                    val headerText = trimmedLine.removePrefix("# ").trim()
+    val elements = remember(part) { parsePartToElements(part) }
+    
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (element in elements) {
+            when (element) {
+                is RenderElement.SpacerElement -> {
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+                is RenderElement.Header -> {
+                    val fontSize = when (element.level) {
+                        1 -> 18.sp
+                        2 -> 16.sp
+                        else -> 14.5.sp
+                    }
                     Text(
-                        text = parseMarkdownToAnnotatedString(headerText, textColor),
-                        fontSize = 18.sp,
+                        text = parseMarkdownToAnnotatedString(element.text, textColor),
+                        fontSize = fontSize,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
-                        lineHeight = 24.sp,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        lineHeight = (fontSize.value + 6).sp,
+                        modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
                     )
                 }
-                // Header 2
-                trimmedLine.startsWith("## ") -> {
-                    val headerText = trimmedLine.removePrefix("## ").trim()
-                    Text(
-                        text = parseMarkdownToAnnotatedString(headerText, textColor),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.padding(top = 6.dp, bottom = 3.dp)
-                    )
-                }
-                // Header 3
-                trimmedLine.startsWith("### ") -> {
-                    val headerText = trimmedLine.removePrefix("### ").trim()
-                    Text(
-                        text = parseMarkdownToAnnotatedString(headerText, textColor),
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
-                    )
-                }
-                // Bullet List Item (* , - , + )
-                trimmedLine.startsWith("* ") || trimmedLine.startsWith("- ") || trimmedLine.startsWith("+ ") -> {
-                    val bulletText = trimmedLine.substring(2).trim()
-                    Row(
-                        modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "•",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentPurple,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text(
-                            text = parseMarkdownToAnnotatedString(bulletText, textColor),
-                            fontSize = 14.sp,
-                            color = textColor,
-                            lineHeight = 22.sp
-                        )
+                is RenderElement.Bullet -> {
+                    if (element.isBoldHeader) {
+                        val cardBgColor = when (element.title.lowercase()) {
+                            "contrast" -> Color(0xFFF4D03F)
+                            "geometry" -> Color(0xFFF1948A)
+                            else -> Color(0xFF85C1E9)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        NeobrutalCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            backgroundColor = cardBgColor,
+                            borderColor = Color.Black,
+                            borderWidth = 1.5.dp,
+                            shadowOffset = 3.dp
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = element.title.uppercase(),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = element.desc,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                    } else {
+                        Row(
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "•",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Text(
+                                text = parseMarkdownToAnnotatedString(element.bulletText, textColor),
+                                fontSize = 13.sp,
+                                color = textColor,
+                                lineHeight = 19.sp
+                            )
+                        }
                     }
                 }
-                // Numbered List Item (1. , 2. , etc.)
-                trimmedLine.matches(Regex("^\\d+\\.\\s+.*")) -> {
-                    val dotIdx = trimmedLine.indexOf('.')
-                    val numPrefix = trimmedLine.substring(0, dotIdx + 1)
-                    val numText = trimmedLine.substring(dotIdx + 1).trim()
+                is RenderElement.Numbered -> {
                     Row(
                         modifier = Modifier.padding(start = 4.dp, top = 2.dp),
                         verticalAlignment = Alignment.Top
                     ) {
                         Text(
-                            text = numPrefix,
-                            fontSize = 14.sp,
+                            text = element.prefix,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = AccentPurple,
                             modifier = Modifier.padding(end = 6.dp)
                         )
                         Text(
-                            text = parseMarkdownToAnnotatedString(numText, textColor),
-                            fontSize = 14.sp,
+                            text = parseMarkdownToAnnotatedString(element.text, textColor),
+                            fontSize = 13.sp,
                             color = textColor,
-                            lineHeight = 22.sp
+                            lineHeight = 19.sp
                         )
                     }
                 }
-                // Blockquote (> )
-                trimmedLine.startsWith("> ") -> {
-                    val quoteText = trimmedLine.removePrefix("> ").trim()
+                is RenderElement.Quote -> {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -267,25 +467,76 @@ private fun MarkdownBlock(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = parseMarkdownToAnnotatedString(quoteText, Color(0xFF334155)),
-                            fontSize = 13.5.sp,
+                            text = parseMarkdownToAnnotatedString(element.text, Color(0xFF334155)),
+                            fontSize = 13.sp,
                             fontStyle = FontStyle.Italic,
                             color = Color(0xFF334155),
-                            lineHeight = 20.sp
+                            lineHeight = 19.sp
                         )
                     }
                 }
-                // Empty line
-                trimmedLine.isEmpty() -> {
-                    Spacer(modifier = Modifier.height(2.dp))
+                is RenderElement.Progress -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${element.label.uppercase()} ${element.percentage}%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Black
+                        )
+                        NeobrutalProgressBar(
+                            progress = element.percentage / 100f,
+                            progressColor = Color(0xFFF4D03F),
+                            barHeight = 14.dp
+                        )
+                    }
                 }
-                // Regular Paragraph
-                else -> {
+                is RenderElement.Table -> {
+                    NeobrutalTable(
+                        headers = element.headers,
+                        rows = element.rows,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                is RenderElement.Chart -> {
+                    NeobrutalChart(
+                        title = element.title,
+                        bars = element.bars,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                is RenderElement.StepCard -> {
+                    NeobrutalStepCard(
+                        stepNumber = element.stepNum,
+                        title = element.title,
+                        description = element.desc,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                is RenderElement.TipCard -> {
+                    NeobrutalTipCard(
+                        title = element.title,
+                        description = element.desc,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                is RenderElement.ImageResult -> {
+                    NeobrutalImageResult(
+                        prompt = element.prompt,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                is RenderElement.Paragraph -> {
                     Text(
-                        text = parseMarkdownToAnnotatedString(trimmedLine, textColor),
-                        fontSize = 14.sp,
+                        text = parseMarkdownToAnnotatedString(element.text, textColor),
+                        fontSize = 13.sp,
                         color = textColor,
-                        lineHeight = 22.sp
+                        lineHeight = 19.sp
                     )
                 }
             }

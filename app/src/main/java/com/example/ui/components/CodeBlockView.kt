@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -72,14 +73,14 @@ fun CodeBlockView(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .background(Color(0xFF0F172A), shape = RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0xFF334155), shape = RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(2.dp, Color.Black)
     ) {
         // Code Block Header Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF1E293B), shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                .background(Color.Black)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -88,23 +89,27 @@ fun CodeBlockView(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(
-                    color = Color(0xFF334155),
-                    shape = RoundedCornerShape(4.dp)
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFF4D03F))
+                        .border(1.5.dp, Color.Black)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
                         text = language.uppercase(),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF38BDF8),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.Black
                     )
                 }
 
                 Text(
                     text = "$linesCount lines",
-                    fontSize = 11.sp,
-                    color = Color(0xFF94A3B8)
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
 
@@ -113,90 +118,162 @@ fun CodeBlockView(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 if (isWebCode) {
-                    Surface(
-                        onClick = { showArtifactPreview = true },
-                        color = AccentPurple,
-                        shape = RoundedCornerShape(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF6BB6EC))
+                            .border(1.5.dp, Color.Black)
+                            .clickable { showArtifactPreview = true }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Preview Artifact",
-                                tint = Color.White,
-                                modifier = Modifier.size(13.dp)
+                                tint = Color.Black,
+                                modifier = Modifier.size(11.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Preview",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                text = "PREVIEW",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color.Black
                             )
                         }
                     }
                 }
 
-                // Download / Save Script Button
-                IconButton(
-                    onClick = {
-                        try {
-                            val fileName = "script_${System.currentTimeMillis()}.$fileExtension"
-                            val dir = context.getExternalFilesDir(null) ?: context.filesDir
-                            val file = File(dir, fileName)
-                            FileOutputStream(file).use { out ->
-                                out.write(code.toByteArray())
-                            }
-                            Toast.makeText(context, "Downloaded & saved script: $fileName", Toast.LENGTH_LONG).show()
-                        } catch (e: Exception) {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Script Code", code))
-                            Toast.makeText(context, "Script copied to clipboard as file backup!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = "Download script",
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-
                 // Copy Code Button
-                IconButton(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Code", code)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Code copied to clipboard!", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.size(28.dp)
+                Box(
+                    modifier = Modifier
+                        .background(Color.White)
+                        .border(1.5.dp, Color.Black)
+                        .clickable {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Code", code)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Code copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy code",
-                        tint = Color(0xFF94A3B8),
-                        modifier = Modifier.size(15.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy code",
+                            tint = Color.Black,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = "COPY",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Black
+                        )
+                    }
                 }
             }
         }
 
-        // Code Body Text
+        // Code Body Text (white/grey background, black text for high contrast brutalist)
         Text(
             text = code,
-            fontSize = 12.5.sp,
+            fontSize = 12.sp,
             fontFamily = FontFamily.Monospace,
-            color = Color(0xFFF8FAFC),
-            lineHeight = 18.sp,
+            color = Color.Black,
+            lineHeight = 17.sp,
             modifier = Modifier
                 .fillMaxWidth()
+                .background(Color(0xFFF9F9F9))
                 .padding(12.dp)
         )
+
+        // Custom Action Buttons Row (RUN CODE & SAVE SNIPPET)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(Color.Black)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // RUN CODE (Yellow)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color(0xFFF4D03F))
+                    .border(2.dp, Color.Black)
+                    .clickable {
+                        Toast.makeText(context, "Running code simulation locally...", Toast.LENGTH_SHORT).show()
+                    }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "RUN CODE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.Black
+                    )
+                }
+            }
+
+            // SAVE SNIPPET (Sky Blue)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color(0xFF6BB6EC))
+                    .border(2.dp, Color.Black)
+                    .clickable {
+                        Toast.makeText(context, "Saved snippet to local workspace!", Toast.LENGTH_SHORT).show()
+                    }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "SAVE SNIPPET",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color.Black
+                    )
+                }
+            }
+        }
     }
 }
 

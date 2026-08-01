@@ -1,27 +1,21 @@
 package com.example.ui.screens.benchmark
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.ImmersiveCanvas
-import com.example.ui.theme.ImmersiveSurface
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
+import com.example.ui.components.NeobrutalIconButton
 import com.example.ui.viewmodel.BenchmarkUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,37 +28,59 @@ fun BenchmarkScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                navigationIcon = {
+            // High-contrast Neobrutalist Top Bar with thick bottom border
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .border(width = 2.dp, color = Color.Black)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     if (onBackClick != null) {
-                        IconButton(onClick = onBackClick) {
+                        NeobrutalIconButton(
+                            onClick = onBackClick,
+                            backgroundColor = Color.White,
+                            shadowOffset = 2.dp,
+                            borderWidth = 1.5.dp,
+                            isCircular = false,
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = TextPrimary
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-                },
-                title = {
+
                     Column {
                         Text(
-                            text = "CPU Performance Lab",
+                            text = "PERFORMANCE LAB",
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Black
                         )
                         Text(
-                            text = "Test local ARM NEON & SIMD matrix math throughput",
-                            fontSize = 11.sp,
-                            color = TextMuted
+                            text = "MEASURE LOCAL CPU MATRIX MATH SPEED",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Gray
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ImmersiveSurface)
-            )
+                }
+            }
         },
-        containerColor = ImmersiveCanvas,
+        containerColor = Color.White, // Always make background white
         modifier = modifier
     ) { padding ->
         LazyColumn(
@@ -73,7 +89,7 @@ fun BenchmarkScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(ImmersiveCanvas)
+                .background(Color.White) // Forced white background
         ) {
             item {
                 HardwareSpecCard(spec = state.spec)
@@ -91,4 +107,3 @@ fun BenchmarkScreen(
         }
     }
 }
-

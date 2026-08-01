@@ -133,4 +133,16 @@ class ModelViewModel(
             }
         }
     }
+
+    fun loadModel(modelId: String) {
+        viewModelScope.launch {
+            modelRepository.setActiveModel(modelId)
+        }
+    }
+
+    fun unloadModel(modelId: String) {
+        viewModelScope.launch {
+            modelRepository.setActiveModel("")
+        }
+    }
 }

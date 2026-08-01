@@ -1,27 +1,22 @@
 package com.example.ui.screens.benchmark
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.StatusChip
-import com.example.ui.theme.AccentPurple
-import com.example.ui.theme.ImmersiveBorder
-import com.example.ui.theme.ImmersiveSurface
-import com.example.ui.theme.ImmersiveSurfaceVariant
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.components.NeobrutalCard
+import com.example.ui.components.NeobrutalStatusBadge
 import com.example.ui.viewmodel.HardwareSpec
 
 @Composable
@@ -29,87 +24,104 @@ fun HardwareSpecCard(
     spec: HardwareSpec,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, ImmersiveBorder, shape = RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = ImmersiveSurface),
-        shape = RoundedCornerShape(16.dp)
+    NeobrutalCard(
+        backgroundColor = Color.White, // Always make background white
+        borderColor = Color.Black,
+        shadowColor = Color.Black,
+        borderWidth = 2.dp,
+        shadowOffset = 4.dp,
+        cornerRadius = 0.dp,
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Icon header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.PhoneAndroid,
                     contentDescription = null,
-                    tint = AccentPurple,
+                    tint = Color.Black,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mobile CPU Hardware Detected",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    text = "HARDWARE SPEC DETECTED",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.Black
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = spec.cpuModel,
+                text = spec.cpuModel.uppercase(),
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = AccentPurple
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = Color.Black
             )
             Text(
-                text = "Architecture: ${spec.cpuArchitecture} • ${spec.coreCount} Cores",
-                fontSize = 12.sp,
-                color = TextSecondary
+                text = "ARCHITECTURE: ${spec.cpuArchitecture.uppercase()} • ${spec.coreCount} PHYSICAL CORES",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "SIMD & ISA Extensions:",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextMuted
+                text = "SIMD & MATRIX EXTENSIONS:",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                color = Color.Black
             )
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 6.dp)
             ) {
                 spec.simdFeatures.forEach { feature ->
-                    StatusChip(
-                        text = feature,
-                        backgroundColor = ImmersiveSurfaceVariant,
-                        textColor = AccentPurple
-                    )
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF7DD3FC)) // Sky blue feature tag
+                            .border(width = 1.dp, color = Color.Black)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = feature.uppercase(),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Black
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "System RAM: ${spec.ramSizeGb} GB",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
+                    text = "SYSTEM RAM: ${spec.ramSizeGb} GB",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.Black
                 )
                 Text(
-                    text = "Storage Free: ${spec.availableStorageGb} GB",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
+                    text = "STORAGE FREE: ${spec.availableStorageGb} GB",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.Black
                 )
             }
         }
     }
 }
-
-

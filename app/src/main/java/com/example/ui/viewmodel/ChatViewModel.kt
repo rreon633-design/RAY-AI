@@ -122,7 +122,7 @@ class ChatViewModel(
                 if (_uiState.value.currentSessionId != null) {
                     loadMessagesForChat(_uiState.value.currentSessionId!!)
                 } else if (sessionsList.isEmpty()) {
-                    createNewChat("New Chat")
+                    createDefaultSeedChat()
                 }
             }
         }
@@ -148,6 +148,52 @@ class ChatViewModel(
                 title = title,
                 modelId = activeModel.id,
                 modelName = activeModel.name
+            )
+            selectSession(newId)
+        }
+    }
+
+    fun createDefaultSeedChat() {
+        viewModelScope.launch {
+            val activeModel = _uiState.value.activeModel
+            val newId = chatRepository.createNewSession(
+                title = "Neobrutalism Explained",
+                modelId = activeModel.id,
+                modelName = activeModel.name
+            )
+            // Seed 1 (assistant)
+            chatRepository.saveMessage(
+                MessageEntity(
+                    chatId = newId,
+                    sender = "assistant",
+                    text = "Hello! I'm here to help you understand **Neobrutalism** in modern UI design. Essentially, it's a rejection of the soft, minimalist 'clean' aesthetics of the last decade.\n\nKey features include high-contrast colors, thick black borders (strokes), hard shadows with no blur, and a focus on raw, geometric shapes. It's built to feel tactile and honest.",
+                    modelId = activeModel.id,
+                    cpuThreads = 4,
+                    tokenCount = 54,
+                    tokensPerSecond = 12.5
+                )
+            )
+            // Seed 2 (user)
+            chatRepository.saveMessage(
+                MessageEntity(
+                    chatId = newId,
+                    sender = "user",
+                    text = "That sounds bold. Why is it becoming popular again for AI interfaces?",
+                    modelId = activeModel.id,
+                    cpuThreads = 4
+                )
+            )
+            // Seed 3 (assistant)
+            chatRepository.saveMessage(
+                MessageEntity(
+                    chatId = newId,
+                    sender = "assistant",
+                    text = "Great question! Neobrutalism gives AI a **tangible presence**. Because AI can feel ethereal or invisible, giving it a \"boxy,\" physical-looking interface makes it feel more like a reliable tool.\n\n- **Contrast**: Makes complex AI data readable.\n- **Geometry**: Implies logic and structure.\n\nTake a look at this structural study of neobrutalist components I've visualized for you:",
+                    modelId = activeModel.id,
+                    cpuThreads = 4,
+                    tokenCount = 42,
+                    tokensPerSecond = 14.1
+                )
             )
             selectSession(newId)
         }

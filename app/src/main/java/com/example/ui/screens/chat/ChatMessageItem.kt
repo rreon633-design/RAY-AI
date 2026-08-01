@@ -7,48 +7,31 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.MessageEntity
-import com.example.ui.components.CodeBlockView
 import com.example.ui.components.MarkdownTextView
-import com.example.ui.components.MetricBadge
-import com.example.ui.theme.AccentPurple
-import com.example.ui.theme.ImmersiveBorder
-import com.example.ui.theme.ImmersiveBorderSubtle
-import com.example.ui.theme.ImmersiveSurface
-import com.example.ui.theme.ImmersiveSurfaceVariant
-import com.example.ui.theme.OnAccentPurple
-import com.example.ui.theme.PurpleContainer
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.components.NeobrutalCard
+import com.example.ui.components.NeobrutalIllustration
 import com.example.util.DocumentExporter
 
 @Composable
@@ -62,250 +45,260 @@ fun ChatMessageItem(
     var isLiked by remember { mutableStateOf<Boolean?>(null) }
     var showExportMenu by remember { mutableStateOf(false) }
 
-    Row(
+    // Mock static timestamp for demo fidelity
+    val displayTime = if (isUser) "10:25 AM" else "10:24 AM"
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+            .padding(vertical = 10.dp),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
-        if (!isUser) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(PurpleContainer, shape = CircleShape)
-                    .border(1.dp, AccentPurple.copy(alpha = 0.3f), shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Memory,
-                    contentDescription = "ChatGPT AI Engine",
-                    tint = AccentPurple,
-                    modifier = Modifier.size(18.dp)
+        // Tag Headers
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 6.dp)
+        ) {
+            if (isUser) {
+                // Timestamp left, Tag right
+                Text(
+                    text = displayTime,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF0D7BB3)) // Deep Sky Blue tag
+                        .border(2.dp, Color.Black)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "YOU",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+            } else {
+                // Tag left, Timestamp right
+                Box(
+                    modifier = Modifier
+                        .background(Color.Black)
+                        .border(2.dp, Color.Black)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "RAY AI",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = displayTime,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
         }
 
-        Column(
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-            modifier = Modifier.widthIn(max = 320.dp)
+        // Main Message Card
+        NeobrutalCard(
+            modifier = Modifier.widthIn(max = 330.dp),
+            backgroundColor = if (isUser) Color(0xFF6BB6EC) else Color.White,
+            borderColor = Color.Black,
+            borderWidth = 2.dp,
+            shadowOffset = 4.dp
         ) {
-            Surface(
-                color = if (isUser) AccentPurple else ImmersiveSurfaceVariant,
-                shape = RoundedCornerShape(
-                    topStart = 18.dp,
-                    topEnd = 18.dp,
-                    bottomStart = if (isUser) 18.dp else 4.dp,
-                    bottomEnd = if (isUser) 4.dp else 18.dp
-                ),
-                border = if (isUser) null else androidx.compose.foundation.BorderStroke(1.dp, ImmersiveBorderSubtle)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    MarkdownTextView(
-                        text = message.text,
-                        textColor = if (isUser) OnAccentPurple else TextPrimary,
-                        isUser = isUser
-                    )
+            Column(modifier = Modifier.padding(14.dp)) {
+                // Markdown text view with custom content text color
+                MarkdownTextView(
+                    text = message.text,
+                    textColor = Color.Black,
+                    isUser = isUser
+                )
 
+                // Render customized illustration study if requested
+                if (!isUser && message.text.contains("structural study")) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    NeobrutalIllustration()
+                }
+
+                // Tokens details / metrics row (if any)
+                if (!isUser && message.tokensPerSecond > 0f) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF4D03F))
+                            .border(1.5.dp, Color.Black)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${message.cpuThreads ?: 4} CORES | ${String.format("%.1f", message.tokensPerSecond)} t/s",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color.Black
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Action Buttons Toolbar inside message
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     if (isUser) {
-                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            // Copy Prompt
+                            IconButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("User Prompt", message.text)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Prompt copied!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.size(24.dp)
                             ) {
-                                // Copy User Prompt Button
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copy Prompt",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+
+                            // Edit Prompt
+                            if (onEditPrompt != null) {
                                 IconButton(
                                     onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("User Prompt", message.text)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "Prompt copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                        onEditPrompt(message.text)
+                                        Toast.makeText(context, "Loaded to editor!", Toast.LENGTH_SHORT).show()
                                     },
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "Copy Prompt",
-                                        tint = OnAccentPurple.copy(alpha = 0.85f),
-                                        modifier = Modifier.size(13.dp)
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Modify Prompt",
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(14.dp)
                                     )
-                                }
-
-                                // Modify / Edit Prompt Button
-                                if (onEditPrompt != null) {
-                                    IconButton(
-                                        onClick = {
-                                            onEditPrompt(message.text)
-                                            Toast.makeText(context, "Loaded prompt into input bar to modify!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Modify Prompt",
-                                            tint = OnAccentPurple.copy(alpha = 0.85f),
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
                                 }
                             }
                         }
-                    }
-
-                    if (!isUser) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        // AI message action buttons
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End,
-                            modifier = Modifier.fillMaxWidth()
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // ChatGPT style message action buttons (Copy, Export, Thumbs Up, Thumbs Down)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            // Export Menu
+                            Box {
+                                IconButton(
+                                    onClick = { showExportMenu = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Download,
+                                        contentDescription = "Export Document",
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showExportMenu,
+                                    onDismissRequest = { showExportMenu = false },
+                                    modifier = Modifier
+                                        .background(Color.White)
+                                        .border(2.dp, Color.Black)
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Export as .PDF", color = Color.Black, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold) },
+                                        leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp)) },
+                                        onClick = {
+                                            showExportMenu = false
+                                            val res = DocumentExporter.exportToPdf(context, "AI_Document", message.text)
+                                            if (res.isSuccess) {
+                                                Toast.makeText(context, "Exported PDF to Documents", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export as .MD / .TXT", color = Color.Black, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold) },
+                                        leadingIcon = { Icon(Icons.Default.TextSnippet, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp)) },
+                                        onClick = {
+                                            showExportMenu = false
+                                            val res = DocumentExporter.exportToText(context, "AI_Document", message.text)
+                                            if (res.isSuccess) {
+                                                Toast.makeText(context, "Exported Markdown file", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            // Copy message
+                            IconButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("RAY AI Message", message.text)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Copied!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.size(24.dp)
                             ) {
-                                // Export Dropdown Menu Button
-                                Box {
-                                    IconButton(
-                                        onClick = { showExportMenu = true },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Download,
-                                            contentDescription = "Export Document",
-                                            tint = AccentPurple,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                    }
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copy message",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
 
-                                    DropdownMenu(
-                                        expanded = showExportMenu,
-                                        onDismissRequest = { showExportMenu = false },
-                                        modifier = Modifier.background(ImmersiveSurface)
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Export as .PDF", color = TextPrimary, fontSize = 13.sp) },
-                                            leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = AccentPurple, modifier = Modifier.size(16.dp)) },
-                                            onClick = {
-                                                showExportMenu = false
-                                                val res = DocumentExporter.exportToPdf(context, "AI_Document", message.text)
-                                                if (res.isSuccess) {
-                                                    Toast.makeText(context, "Exported PDF to Documents: ${res.getOrNull()?.name}", Toast.LENGTH_LONG).show()
-                                                } else {
-                                                    Toast.makeText(context, "PDF export error: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("Export as .WORD (.docx)", color = TextPrimary, fontSize = 13.sp) },
-                                            leadingIcon = { Icon(Icons.Default.TextSnippet, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp)) },
-                                            onClick = {
-                                                showExportMenu = false
-                                                val res = DocumentExporter.exportToWordDocx(context, "AI_Document", message.text)
-                                                if (res.isSuccess) {
-                                                    Toast.makeText(context, "Exported Word docx to Documents: ${res.getOrNull()?.name}", Toast.LENGTH_LONG).show()
-                                                } else {
-                                                    Toast.makeText(context, "Word export error: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("Export as .HTML", color = TextPrimary, fontSize = 13.sp) },
-                                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(16.dp)) },
-                                            onClick = {
-                                                showExportMenu = false
-                                                val res = DocumentExporter.exportToHtml(context, "AI_Document", message.text)
-                                                if (res.isSuccess) {
-                                                    Toast.makeText(context, "Exported HTML to Documents: ${res.getOrNull()?.name}", Toast.LENGTH_LONG).show()
-                                                } else {
-                                                    Toast.makeText(context, "HTML export error: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        )
-                                        DropdownMenuItem(
-                                            text = { Text("Export as .MD / .TXT", color = TextPrimary, fontSize = 13.sp) },
-                                            leadingIcon = { Icon(Icons.Default.TextSnippet, contentDescription = null, tint = TextMuted, modifier = Modifier.size(16.dp)) },
-                                            onClick = {
-                                                showExportMenu = false
-                                                val res = DocumentExporter.exportToText(context, "AI_Document", message.text)
-                                                if (res.isSuccess) {
-                                                    Toast.makeText(context, "Exported Markdown file: ${res.getOrNull()?.name}", Toast.LENGTH_LONG).show()
-                                                } else {
-                                                    Toast.makeText(context, "Text export error: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
+                            // Thumbs up
+                            IconButton(
+                                onClick = { isLiked = if (isLiked == true) null else true },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isLiked == true) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
+                                    contentDescription = "Good response",
+                                    tint = if (isLiked == true) Color(0xFF0D7BB3) else Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
 
-                                IconButton(
-                                    onClick = {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val clip = ClipData.newPlainText("RAY AI Message", message.text)
-                                        clipboard.setPrimaryClip(clip)
-                                        Toast.makeText(context, "Copied to clipboard!", Toast.LENGTH_SHORT).show()
-                                    },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.Default.ContentCopy,
-                                        contentDescription = "Copy message",
-                                        tint = TextMuted,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
-
-                                IconButton(
-                                    onClick = { isLiked = if (isLiked == true) null else true },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isLiked == true) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
-                                        contentDescription = "Good response",
-                                        tint = if (isLiked == true) AccentPurple else TextMuted,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
-
-                                IconButton(
-                                    onClick = { isLiked = if (isLiked == false) null else false },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isLiked == false) Icons.Default.ThumbDown else Icons.Outlined.ThumbDown,
-                                        contentDescription = "Bad response",
-                                        tint = if (isLiked == false) Color.Red else TextMuted,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
+                            // Thumbs down
+                            IconButton(
+                                onClick = { isLiked = if (isLiked == false) null else false },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isLiked == false) Icons.Default.ThumbDown else Icons.Outlined.ThumbDown,
+                                    contentDescription = "Bad response",
+                                    tint = if (isLiked == false) Color.Red else Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
                     }
                 }
             }
         }
-
-        if (isUser) {
-            Spacer(modifier = Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(ImmersiveBorder, shape = CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "User",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
     }
 }
-

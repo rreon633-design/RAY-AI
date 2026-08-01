@@ -4,38 +4,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.domain.model.AiModelInfo
-import com.example.ui.theme.ImmersiveCanvas
-import com.example.ui.theme.ImmersiveSurface
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
+import com.example.domain.model.ModelCategory
 import com.example.ui.viewmodel.ModelsUiState
 
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelsScreen(
     state: ModelsUiState,
-    onSelectCategory: (com.example.domain.model.ModelCategory?) -> Unit,
+    onSelectCategory: (ModelCategory?) -> Unit,
     onStartDownload: (AiModelInfo) -> Unit,
     onDeleteModel: (String) -> Unit,
+    onLoadModel: (String) -> Unit,
+    onUnloadModel: (String) -> Unit,
     onDetectHardware: (android.content.Context) -> Unit = {},
     onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -51,37 +38,11 @@ fun ModelsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    if (onBackClick != null) {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = TextPrimary
-                            )
-                        }
-                    }
-                },
-                title = {
-                    Column {
-                        Text(
-                            text = "Model Download Hub",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Small INT4 GGUF models optimized for mobile CPU",
-                            fontSize = 11.sp,
-                            color = TextMuted
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = ImmersiveSurface)
+            ModelsHubHeader(
+                onMenuClick = { onBackClick?.invoke() }
             )
         },
-        containerColor = ImmersiveCanvas,
+        containerColor = Color.White,
         modifier = modifier
     ) { padding ->
         LazyColumn(
@@ -90,33 +51,38 @@ fun ModelsScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(ImmersiveCanvas)
+                .background(Color.White)
         ) {
-            // Hardware Detection Banner
-            state.deviceHardwareInfo?.let { hw ->
-                val recModel = state.catalog.find { it.id == hw.recommendedModelId }
-                val recEntity = recModel?.let { state.downloadedModelsMap[it.id] }
-                val isDownloaded = recEntity?.isDownloaded == true
-                val isDownloading = state.downloadingProgressMap.containsKey(recModel?.id)
+            // 1. Dynamic System RAM usage card matching mockup
+            item {
+                SystemRamUsageCard(
+                    hardwareInfo = state.deviceHardwareInfo
+                )
+            }
 
+            // 2. Dynamic CPU Load card with interactive ticking load
+            item {
+                CpuLoadCard(
+                    hardwareInfo = state.deviceHardwareInfo
+                )
+            }
+
+            // 3. Global download progress indicator matching mockup when downloads are running
+            if (state.downloadingProgressMap.isNotEmpty()) {
                 item {
-                    DeviceRecommendationBanner(
-                        hardwareInfo = hw,
-                        recommendedModel = recModel,
-                        isAlreadyDownloaded = isDownloaded,
-                        isDownloading = isDownloading,
-                        onDownloadClick = onStartDownload
+                    GlobalDownloadProgressCard(
+                        downloadingModels = state.downloadingProgressMap,
+                        catalog = state.catalog
                     )
                 }
             }
 
+            // Spacer line separating system load from models catalog
             item {
-                StorageUsageBanner(
-                    usedBytes = state.totalStorageUsedBytes,
-                    totalBytes = state.freeStorageBytes
-                )
+                Spacer(modifier = Modifier.height(4.dp))
             }
 
+            // 4. Custom Neobrutalist filter chips
             item {
                 ModelFilterChips(
                     selectedCategory = state.selectedCategory,
@@ -124,19 +90,21 @@ fun ModelsScreen(
                 )
             }
 
+            // 5. Neobrutalist Model Cards catalog
             items(filteredCatalog, key = { it.id }) { model ->
                 val entity = state.downloadedModelsMap[model.id]
                 val progress = state.downloadingProgressMap[model.id]
 
-                ModelCardItem(
+                NeobrutalModelCard(
                     model = model,
                     modelEntity = entity,
                     downloadProgress = progress,
                     onStartDownload = onStartDownload,
-                    onDeleteModel = onDeleteModel
+                    onDeleteModel = onDeleteModel,
+                    onLoadModel = onLoadModel,
+                    onUnloadModel = onUnloadModel
                 )
             }
         }
     }
 }
-
