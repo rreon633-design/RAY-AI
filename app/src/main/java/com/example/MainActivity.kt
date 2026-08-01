@@ -14,6 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.local.AppDatabase
 import com.example.data.repository.ChatRepository
 import com.example.data.repository.ModelRepository
@@ -25,7 +28,6 @@ import com.example.ui.screens.chat.ChatScreen
 import com.example.ui.screens.models.ModelsScreen
 import com.example.ui.screens.settings.SettingsScreen
 import com.example.ui.screens.splash.SplashScreen
-import com.example.ui.theme.ImmersiveCanvas
 import com.example.ui.theme.LocalAiTheme
 import com.example.ui.viewmodel.*
 
@@ -36,17 +38,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val db = AppDatabase.getInstance(this)
+        val db = AppDatabase.getInstance(applicationContext)
         val chatRepository = ChatRepository(db.chatDao())
         val modelRepository = ModelRepository(db.modelDao())
         val settingsRepository = SettingsRepository(db.settingsDao())
 
-        val chatViewModel = ChatViewModel(chatRepository, modelRepository, settingsRepository)
-        val modelViewModel = ModelViewModel(modelRepository)
-        val benchmarkViewModel = BenchmarkViewModel()
-        val settingsViewModel = SettingsViewModel(settingsRepository)
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return when {
+                    modelClass.isAssignableFrom(ChatViewModel::class.java) -> ChatViewModel(chatRepository, modelRepository, settingsRepository) as T
+                    modelClass.isAssignableFrom(ModelViewModel::class.java) -> ModelViewModel(modelRepository) as T
+                    modelClass.isAssignableFrom(BenchmarkViewModel::class.java) -> BenchmarkViewModel() as T
+                    modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(settingsRepository) as T
+                    else -> throw IllegalArgumentException("Unknown ViewModel class")
+                }
+            }
+        }
 
         setContent {
+            val settingsViewModel: SettingsViewModel = viewModel(factory = factory)
             val settingsState by settingsViewModel.uiState.collectAsState()
 
             LocalAiTheme(themeMode = settingsState.settings.themeMode) {
@@ -63,6 +74,10 @@ class MainActivity : ComponentActivity() {
                         )
                     } else {
                         var currentRoute by remember { mutableStateOf(Screen.Chat.route) }
+
+                        val chatViewModel: ChatViewModel = viewModel(factory = factory)
+                        val modelViewModel: ModelViewModel = viewModel(factory = factory)
+                        val benchmarkViewModel: BenchmarkViewModel = viewModel(factory = factory)
 
                         val chatState by chatViewModel.uiState.collectAsState()
                         val modelsState by modelViewModel.uiState.collectAsState()
@@ -146,4 +161,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 

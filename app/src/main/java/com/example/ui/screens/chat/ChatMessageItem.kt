@@ -6,6 +6,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,6 +29,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.TextView
+import androidx.core.text.HtmlCompat
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.data.local.MessageEntity
 import com.example.ui.components.MarkdownTextView
 import com.example.ui.components.NeobrutalCard
@@ -44,6 +48,7 @@ fun ChatMessageItem(
     val context = LocalContext.current
     var isLiked by remember { mutableStateOf<Boolean?>(null) }
     var showExportMenu by remember { mutableStateOf(false) }
+    var renderingMode by remember { mutableStateOf("html") }
 
     // Mock static timestamp for demo fidelity
     val displayTime = if (isUser) "10:25 AM" else "10:24 AM"
@@ -119,12 +124,28 @@ fun ChatMessageItem(
             shadowOffset = 4.dp
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
-                // Markdown text view with custom content text color
-                MarkdownTextView(
-                    text = message.text,
-                    textColor = Color.Black,
-                    isUser = isUser
-                )
+                // Render content based on selected mode
+                if (renderingMode == "html") {
+                    AndroidView(
+                        factory = { ctx ->
+                            TextView(ctx).apply {
+                                setTextColor(android.graphics.Color.BLACK)
+                                textSize = 13f
+                                setLineSpacing(0f, 1.3f)
+                                text = HtmlCompat.fromHtml(message.text, HtmlCompat.FROM_HTML_MODE_COMPACT)
+                            }
+                        },
+                        update = { textView ->
+                            textView.text = HtmlCompat.fromHtml(message.text, HtmlCompat.FROM_HTML_MODE_COMPACT)
+                        }
+                    )
+                } else {
+                    MarkdownTextView(
+                        text = message.text,
+                        textColor = Color.Black,
+                        isUser = isUser
+                    )
+                }
 
                 // Render customized illustration study if requested
                 if (!isUser && message.text.contains("structural study")) {
@@ -206,6 +227,42 @@ fun ChatMessageItem(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            // View Mode Toggle
+                            Row(
+                                modifier = Modifier
+                                    .border(1.5.dp, Color.Black)
+                                    .height(24.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(if (renderingMode == "html") Color(0xFFF4D03F) else Color.White)
+                                        .padding(horizontal = 6.dp)
+                                        .fillMaxHeight()
+                                        .clickable { renderingMode = "html" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("HTML", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color.Black)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.5.dp)
+                                        .fillMaxHeight()
+                                        .background(Color.Black)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .background(if (renderingMode == "md") Color(0xFFF4D03F) else Color.White)
+                                        .padding(horizontal = 6.dp)
+                                        .fillMaxHeight()
+                                        .clickable { renderingMode = "md" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("MD", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = Color.Black)
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.width(4.dp))
+                            
                             // Export Menu
                             Box {
                                 IconButton(
