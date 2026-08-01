@@ -1,0 +1,6 @@
+{
+  "name": "RAY AI",
+  "description": "Minimalist Sunrise AI engine with local models, web artifacts rendering, and chat studio",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
